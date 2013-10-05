@@ -32,7 +32,11 @@ module SpunoutAPI
       content_type :json
       page = params["page"].to_i
       result = sodb.page(page)
-      { total: 2083, page: page, count: result.count, total_pages: 42, services: result}.to_json
+      if params["limit"] != nil
+          limit = params["limit"].to_i
+          result = result.take(limit)
+      end
+      { total: 2083, page: page, count: result.count, total_pages: 42, services: result,}.to_json
     end
     
     get '/v1/service/:id' do
@@ -45,6 +49,10 @@ module SpunoutAPI
       content_type :json
       fz = FuzzyMatch.new(sodb.query(""))
       result = fz.find_all(params[:term])
+      if params["limit"] != nil
+          limit = params["limit"].to_i
+          result = result.take(limit)
+      end
       { count: result.count, services: result }.to_json
     end
 
@@ -65,6 +73,21 @@ module SpunoutAPI
       fz = FuzzyMatch.new(sodb.categories)
       result = fz.find_all(params[:term])
       { count: result.count, categories: result}.to_json
+    end
+    
+    get '/v1/hotlines' do
+        content_type :json
+        page = params["page"].to_i
+        if(page == 0) 
+          result = sodb.query("WHERE CHAR_LENGTH(exp_channel_data.field_id_33) > 5 LIMIT 50 OFFSET 0")
+        else 
+          result = sodb.query("WHERE CHAR_LENGTH(exp_channel_data.field_id_33) > 5 LIMIT 50 OFFSET "+(page * 50).to_s)
+        end
+        if params["limit"] != nil
+            limit = params["limit"].to_i
+            result = result.take(limit)
+        end
+        { page: page, count: result.count, total_pages: 42, services: result,}.to_json
     end
 
     get '/v1/nearme' do 
